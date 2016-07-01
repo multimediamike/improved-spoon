@@ -90,6 +90,7 @@ if __name__ == "__main__":
 
     # write the new index
     print "Writing the new index..."
+    index_offset = new_rlb.tell()
     for i in xrange(len(resources)):
         resource = resources[i]
 
@@ -107,6 +108,8 @@ if __name__ == "__main__":
         new_rlb.write(struct.pack("<HHH", resource['res_num'], block_type, block_offset))
 
     # rewind and adjust the header
+    new_rlb.seek(0x0E, 0)
+    new_rlb.write(struct.pack("<I", index_offset))
 
     original_rlb.close()
     new_rlb.close()
