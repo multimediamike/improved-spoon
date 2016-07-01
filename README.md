@@ -9,3 +9,4 @@ These tools are build to operate on the data files found in Tsunami games. Prese
 1. unpack-rlb-file.py: This Python script digs through the RLB file and finds all of the text strings and fonts. It collects all of the test strings and dumps them into a file called 'message.json.txt'. It dumps the font resources into files named 'resource-font-##.dat' according to the ID of the font resource.
 2. unpack-tsunami-font.py: This Python script unpacks the individual characters in a Tsunami font file into a sequence of Portable Grey Map (PGM) files which can be edited with a text editor.
 3. pack-tsunami-font.py: This Python script finds a sequence of PGM files and encodes them into a new Tsunami font file.
+4. repack-rlb-file.py: This Python script takes an original RLB file and transfers the contents to a new RLB file, locating modified scripts and fonts in the process and incorporating them in the new RLB resource file.
