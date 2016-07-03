@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import os
 import struct
 import sys
 
@@ -9,10 +10,16 @@ BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
+MESSAGE_DUMP_FILE = "messages.json.txt"
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print "USAGE: unpack-rlb-file.py </path/to/file.rlb>"
+        sys.exit(1)
+
+    # don't proceed if message dump file already exists
+    if os.path.exists(MESSAGE_DUMP_FILE):
+        print "'%s' already exists; exiting tool so that the dump files are not overwritten" % (MESSAGE_DUMP_FILE)
         sys.exit(1)
 
     rlb = open(sys.argv[1], "rb")
@@ -31,7 +38,7 @@ if __name__ == "__main__":
     # load the index
     rlb.seek(offset, 0)
     index = rlb.read(uncomp_size)
-    all_messages = {}
+    all_messages = []
     i = 0
     while 1:
         (res_num, block_type, block_offset) = struct.unpack("<HHH", index[i:i+6])
@@ -91,9 +98,11 @@ if __name__ == "__main__":
                         else:
                             message += payload[j]
     
-                key = "resource-%d" % (res_num)
-                all_messages[key] = message_list
+                message_resource = {}
+                message_resource['resource_id'] = res_num
+                message_resource['message_list'] = message_list
+                all_messages.append(message_resource)
         i += 6
 
     # dump all the message strings to a JSON file
-    open("messages.json.txt", "w").write(json.dumps(all_messages, indent=2))
+    open(MESSAGE_DUMP_FILE, "w").write(json.dumps(all_messages, indent=2))
