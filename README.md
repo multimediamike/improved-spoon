@@ -10,3 +10,6 @@ These tools are build to operate on the data files found in Tsunami games. Prese
 2. unpack-tsunami-font.py: This Python script unpacks the individual characters in a Tsunami font file into a sequence of Portable Grey Map (PGM) files which can be edited with a text editor.
 3. pack-tsunami-font.py: This Python script finds a sequence of PGM files and encodes them into a new Tsunami font file.
 4. repack-rlb-file.py: This Python script takes an original RLB file and transfers the contents to a new RLB file, locating modified scripts and fonts in the process and incorporating them in the new RLB resource file.
+
+## Missing on Lost Island
+The Python script `missing-on-lost-island/extract-data-files.py` is able to disassemble the files stored inside the Data.dat file of the game [Missing on Lost Island](http://www.mobygames.com/game/missing-on-lost-island).
