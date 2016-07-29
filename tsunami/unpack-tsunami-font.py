@@ -25,6 +25,24 @@ SPANISH_MAP = {
     ord('n'): { 'pos': 143, 'rotate': False }
 }
 
+def write_char_pgm(filename, netpbm_header, width, height, pixels, rotate):
+    netpbm = open(filename, "wb")
+    netpbm.write(netpbm_header)
+
+    if rotate:
+        i = len(pixels) - 1
+        inc = -1
+    else:
+        i = 0
+        inc = 1
+    for y in xrange(height):
+        for x in xrange(width):
+            netpbm.write("%d " % (pixels[i]))
+            i += inc
+        netpbm.write("\n")
+
+    netpbm.close()
+
 def unpack_font(font, output_dir):
     # load header
     header = font.read(HEADER_SIZE)
@@ -42,9 +60,6 @@ def unpack_font(font, output_dir):
     payload = font.read()
     for i in xrange(char_count):
         second_file = None
-        if i in SPANISH_MAP:
-            second_file = SPANISH_MAP[i]
-
         offset = offset_table[i] - payload_start
         char_header = struct.unpack("<H", payload[offset:offset+2])[0]
         offset += 2
@@ -55,10 +70,6 @@ def unpack_font(font, output_dir):
         byte = struct.unpack("B", payload[offset:offset+1])[0]
         offset += 1
         bits_left = 8
-        filename = "%s/char-%03d.pgm" % (output_dir, i)
-        if second_file:
-            second_filename = "%s/char-%03d.pgm" % (output_dir, second_file['pos'])
-        netpbm_header = "P2\n%d %d\n%d\n" % (char_width, char_height, (1 << bits_per_pixel) - 1)
         if bits_per_pixel == 1:
             shifter = 7
             mask = 0x1
@@ -66,29 +77,27 @@ def unpack_font(font, output_dir):
             shifter = 6
             mask = 0x3
 
-        #print "%d: offset by %d, (%d, %d); -> %s" % (i, y_offset, char_width, char_height, filename)
-        netpbm = open(filename, "wb")
-        netpbm.write(netpbm_header)
-        if second_file:
-            second_netpbm = open(second_filename, "wb")
-            second_netpbm.write(netpbm_header)
+        pixels = []
         for y in xrange(char_height):
             for x in xrange(char_width):
                 if bits_left == 0:
                     byte = struct.unpack("B", payload[offset:offset+1])[0]
                     offset += 1
                     bits_left = 8
-                netpbm.write("%d " % ((byte >> shifter) & mask))
-                if second_file:
-                    second_netpbm.write("%d " % ((byte >> shifter) & mask))
+                pixels.append((byte >> shifter) & mask)
                 byte <<= bits_per_pixel
                 bits_left -= bits_per_pixel
-            netpbm.write("\n")
-            if second_file:
-                second_netpbm.write("\n")
-        netpbm.close()
-        if second_file:
-            second_netpbm.close()
+
+        # write the raw character
+        filename = "%s/char-%03d.pgm" % (output_dir, i)
+        netpbm_header = "P2\n%d %d\n%d\n" % (char_width, char_height, (1 << bits_per_pixel) - 1)
+        write_char_pgm(filename, netpbm_header, char_width, char_height, pixels, False)
+
+        # write the cloned and possibly rotated character
+        if i in SPANISH_MAP:
+            filename = "%s/char-%03d.pgm" % (output_dir, SPANISH_MAP[i]['pos'])
+            write_char_pgm(filename, netpbm_header, char_width, char_height, pixels, SPANISH_MAP[i]['rotate'])
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
