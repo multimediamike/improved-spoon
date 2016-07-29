@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import struct
 import sys
 
@@ -24,13 +25,8 @@ SPANISH_MAP = {
     ord('n'): { 'pos': 143, 'rotate': False }
 }
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print "USAGE: unpack-tsunami-font.py <resource-font-??.dat>"
-        sys.exit(1)
-
+def unpack_font(font, output_dir):
     # load header
-    font = open(sys.argv[1], "rb")
     header = font.read(HEADER_SIZE)
     (char_count, unk1, unk2, global_y, global_x, bits_per_pixel) = struct.unpack("<HHHHHH", header)
     print "%d characters, global (x, y) = (%d, %d), %d bits/pixel" % (char_count, global_x, global_y, bits_per_pixel)
@@ -45,8 +41,10 @@ if __name__ == "__main__":
     payload_start = font.tell()
     payload = font.read()
     for i in xrange(char_count):
+        second_file = None
         if i in SPANISH_MAP:
-            pass
+            second_file = SPANISH_MAP[i]
+
         offset = offset_table[i] - payload_start
         char_header = struct.unpack("<H", payload[offset:offset+2])[0]
         offset += 2
@@ -57,7 +55,9 @@ if __name__ == "__main__":
         byte = struct.unpack("B", payload[offset:offset+1])[0]
         offset += 1
         bits_left = 8
-        filename = "%s-char-%03d.pgm" % (sys.argv[1], i)
+        filename = "%s/char-%03d.pgm" % (output_dir, i)
+        if second_file:
+            second_filename = "%s/char-%03d.pgm" % (output_dir, second_file['pos'])
         netpbm_header = "P2\n%d %d\n%d\n" % (char_width, char_height, (1 << bits_per_pixel) - 1)
         if bits_per_pixel == 1:
             shifter = 7
@@ -69,6 +69,9 @@ if __name__ == "__main__":
         #print "%d: offset by %d, (%d, %d); -> %s" % (i, y_offset, char_width, char_height, filename)
         netpbm = open(filename, "wb")
         netpbm.write(netpbm_header)
+        if second_file:
+            second_netpbm = open(second_filename, "wb")
+            second_netpbm.write(netpbm_header)
         for y in xrange(char_height):
             for x in xrange(char_width):
                 if bits_left == 0:
@@ -76,7 +79,26 @@ if __name__ == "__main__":
                     offset += 1
                     bits_left = 8
                 netpbm.write("%d " % ((byte >> shifter) & mask))
+                if second_file:
+                    second_netpbm.write("%d " % ((byte >> shifter) & mask))
                 byte <<= bits_per_pixel
                 bits_left -= bits_per_pixel
             netpbm.write("\n")
+            if second_file:
+                second_netpbm.write("\n")
         netpbm.close()
+        if second_file:
+            second_netpbm.close()
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print "USAGE: unpack-tsunami-font.py <resource-font-??.dat> <output directory>"
+        sys.exit(1)
+
+    # verify parameters
+    print "unpacking font '%s' to directory '%s'" % (sys.argv[1], sys.argv[2])
+    if not os.path.exists(sys.argv[2]):
+        os.makedirs(sys.argv[2])
+    font = open(sys.argv[1], "rb")
+
+    unpack_font(font, sys.argv[2])
