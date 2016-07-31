@@ -5,6 +5,8 @@ import os
 import struct
 import sys
 
+import unpack_tsunami_font
+
 BLOCK_HEADER_SIZE = 6
 BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
@@ -48,6 +50,7 @@ if __name__ == "__main__":
         offset_high_bits = block_type >> 5
         block_type &= 0x1F
         block_offset = (block_offset | (offset_high_bits << 16)) * 16
+        print "block type %d at 0x%X" % (block_type, block_offset)
 
         # check that the block has a valid signature
         rlb.seek(block_offset, 0)
@@ -82,6 +85,10 @@ if __name__ == "__main__":
                 filename = "resource-font-%d.dat" % (res_num)
                 print " dumping font -> '%s'" % (filename)
                 open(filename, "wb").write(payload)
+                font_dir = "resource-font-%d" % (res_num)
+                if not os.path.exists(font_dir):
+                    os.makedirs(font_dir)
+                unpack_tsunami_font.unpack_font(open(filename, "rb"), font_dir)
             elif block_type == RESOURCE_TYPE_MESSAGE:
                 message_list = []
                 message = ""

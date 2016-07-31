@@ -5,6 +5,8 @@ import os
 import struct
 import sys
 
+import pack_tsunami_font
+
 MAIN_HEADER_SIZE = 32
 BLOCK_HEADER_SIZE = 6
 BLOCK_SIGNATURE = "TMI-"
@@ -12,6 +14,7 @@ ENTRY_SIZE = 12
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 MESSAGE_DUMP_FILE = "messages.json.txt"
+FONT_HEADER_SIZE = 12
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -49,7 +52,7 @@ if __name__ == "__main__":
     (resource_type, entry_count) = struct.unpack("BB", header[4:6])
     (resource_id, comp_size, uncomp_size, high, res_type, index_offset) = \
         struct.unpack("<HHHBBI", header[6:18])
-    print "index @ 0x%X, %d bytes" % (index_offset, uncomp_size)
+    #print "index @ 0x%X, %d bytes" % (index_offset, uncomp_size)
 
     # copy the header to the output, unmodified for now
     new_rlb.write(header)
@@ -104,7 +107,7 @@ if __name__ == "__main__":
 
         if resource['block_type'] == RESOURCE_TYPE_MESSAGE and resource['res_num'] == 100:
             # copy over the resource header and the single entry header
-            print "Message resource; currently at offset 0x%X" % (original_rlb.tell())
+            print "Substituting message resource %d" % (resource['res_num'])
             header = original_rlb.read(BLOCK_HEADER_SIZE + ENTRY_SIZE)
             new_rlb.write(header)
             (sig, res_type, res_count, res_id, comp_size, uncomp_size, hi_nib, r_type, offset) = struct.unpack("<IBBHHHBBI", header)
@@ -114,7 +117,6 @@ if __name__ == "__main__":
                 # copy over the padding between the header and the start of the payload
                 padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE)
                 new_rlb.write(original_rlb.read(padding_size))
-                print "copied %d padding bytes" % (padding_size)
 
                 # iterate through the message strings for this resource and pack them
                 message_list = all_messages[resource['res_num']]
@@ -137,11 +139,34 @@ if __name__ == "__main__":
                     sys.exit(1)
 
                 # write the size twice (both the compressed and uncompressed sizes)
-                print "adjusted size of resnum 100 to %d (0x%X) bytes" % (new_size, new_size)
                 new_rlb.write(struct.pack("<HH", new_size, new_size))
 
                 # forward to the end of the new block
                 new_rlb.seek(current_offset, 0)
+
+        elif resource['block_type'] == RESOURCE_TYPE_FONT:
+            # sort out the new font
+            font_file = "resource-font-%d.dat" % (resource['res_num'])
+            font_dir = "resource-font-%d" % (resource['res_num'])
+            font_header = open(font_file, "rb").read(FONT_HEADER_SIZE)
+            font_data = pack_tsunami_font.pack_font(font_header, font_dir)
+            font_data_size = len(font_data)
+
+            # unpack the resource header and the single entry header
+            header = original_rlb.read(BLOCK_HEADER_SIZE + ENTRY_SIZE)
+            (sig, res_type, res_count, res_id, comp_size, uncomp_size, hi_nib, r_type, offset) = struct.unpack("<IBBHHHBBI", header)
+            print "Substituting font resource #%d" % (resource['res_num'])
+
+            # repack the header with the new font size and write the header
+            header = struct.pack("<IBBHHHBBI", sig, res_type, res_count, res_id, font_data_size, font_data_size, hi_nib, r_type, offset)
+            new_rlb.write(header)
+
+            # copy over the padding between the header and the start of the payload
+            padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE)
+            new_rlb.write(original_rlb.read(padding_size))
+
+            # write the new font data
+            new_rlb.write(font_data)
 
         else:
             new_rlb.write(original_rlb.read(size))
