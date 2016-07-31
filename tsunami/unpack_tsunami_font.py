@@ -47,7 +47,7 @@ def unpack_font(font, output_dir):
     # load header
     header = font.read(HEADER_SIZE)
     (char_count, unk1, unk2, global_y, global_x, bits_per_pixel) = struct.unpack("<HHHHHH", header)
-    print "%d characters, global (x, y) = (%d, %d), %d bits/pixel" % (char_count, global_x, global_y, bits_per_pixel)
+#    print "%d characters, global (x, y) = (%d, %d), %d bits/pixel" % (char_count, global_x, global_y, bits_per_pixel)
 
     # load character offset table
     offset_table = []
