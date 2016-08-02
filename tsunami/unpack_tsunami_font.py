@@ -7,22 +7,20 @@ import sys
 HEADER_SIZE = 12
 
 SPANISH_MAP = {
-    ord('?'): { 'pos': 128, 'rotate': True },
-    ord('!'): { 'pos': 129, 'rotate': True },
-    ord('A'): { 'pos': 130, 'rotate': False },
-    ord('E'): { 'pos': 131, 'rotate': False },
-    ord('I'): { 'pos': 132, 'rotate': False },
-    ord('O'): { 'pos': 133, 'rotate': False },
-    ord('U'): { 'pos': 134, 'rotate': False },
-    ord('U'): { 'pos': 135, 'rotate': False },
-    ord('N'): { 'pos': 136, 'rotate': False },
-    ord('a'): { 'pos': 137, 'rotate': False },
-    ord('e'): { 'pos': 138, 'rotate': False },
-    ord('i'): { 'pos': 139, 'rotate': False },
-    ord('o'): { 'pos': 140, 'rotate': False },
-    ord('u'): { 'pos': 141, 'rotate': False },
-    ord('u'): { 'pos': 142, 'rotate': False },
-    ord('n'): { 'pos': 143, 'rotate': False }
+    ord('?'): [{ 'pos': 128, 'rotate': True }],
+    ord('!'): [{ 'pos': 129, 'rotate': True }],
+    ord('A'): [{ 'pos': 130, 'rotate': False }],
+    ord('E'): [{ 'pos': 131, 'rotate': False }],
+    ord('I'): [{ 'pos': 132, 'rotate': False }],
+    ord('O'): [{ 'pos': 133, 'rotate': False }],
+    ord('U'): [{ 'pos': 134, 'rotate': False }, { 'pos': 135, 'rotate': False }],
+    ord('N'): [{ 'pos': 136, 'rotate': False }],
+    ord('a'): [{ 'pos': 137, 'rotate': False }],
+    ord('e'): [{ 'pos': 138, 'rotate': False }],
+    ord('i'): [{ 'pos': 139, 'rotate': False }],
+    ord('o'): [{ 'pos': 140, 'rotate': False }],
+    ord('u'): [{ 'pos': 141, 'rotate': False }, { 'pos': 142, 'rotate': False }],
+    ord('n'): [{ 'pos': 143, 'rotate': False }]
 }
 
 def write_char_pgm(filename, netpbm_header, width, height, pixels, rotate):
@@ -93,15 +91,17 @@ def unpack_font(font, output_dir):
         netpbm_header = "P2\n%d %d\n%d\n" % (char_width, char_height, (1 << bits_per_pixel) - 1)
         write_char_pgm(filename, netpbm_header, char_width, char_height, pixels, False)
 
-        # write the cloned and possibly rotated character
+        # write the cloned and possibly rotated character(s)
         if i in SPANISH_MAP:
-            filename = "%s/char-%03d.pgm" % (output_dir, SPANISH_MAP[i]['pos'])
-            write_char_pgm(filename, netpbm_header, char_width, char_height, pixels, SPANISH_MAP[i]['rotate'])
+            clone_chars = SPANISH_MAP[i]
+            for char in clone_chars:
+                filename = "%s/char-%03d.pgm" % (output_dir, char['pos'])
+                write_char_pgm(filename, netpbm_header, char_width, char_height, pixels, char['rotate'])
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print "USAGE: unpack-tsunami-font.py <resource-font-??.dat> <output directory>"
+        print "USAGE: unpack-tsunami-font.py <font.dat> <output directory>"
         sys.exit(1)
 
     # verify parameters
