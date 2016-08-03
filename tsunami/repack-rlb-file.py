@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 
 import json
 import os
@@ -15,6 +16,25 @@ RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 MESSAGE_DUMP_FILE = "messages.json.txt"
 FONT_HEADER_SIZE = 12
+
+SPANISH_UNICODE_MAP = {
+    u"¿": 128,
+    u"¡": 129,
+    u"Á": 130,
+    u"É": 131,
+    u"Í": 132,
+    u"Ó": 133,
+    u"Ú": 134,
+    u"Ü": 135,
+    u"Ñ": 136,
+    u"á": 137,
+    u"é": 138,
+    u"í": 139,
+    u"ó": 140,
+    u"ú": 141,
+    u"ü": 142,
+    u"ñ": 143
+}
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
@@ -123,7 +143,11 @@ if __name__ == "__main__":
                 message_payload = ""
                 for message in message_list:
                     for c in message['Spanish']:
-                        message_payload += struct.pack("B", ord(c))
+                        if c in SPANISH_UNICODE_MAP:
+                            print "got a Spanish character: " + c
+                            message_payload += struct.pack("B", SPANISH_UNICODE_MAP[c])
+                        else:
+                            message_payload += struct.pack("B", ord(c))
                         new_size += 1
                     message_payload += struct.pack("B", 0)
                     new_size += 1
