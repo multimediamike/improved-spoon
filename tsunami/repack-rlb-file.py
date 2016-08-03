@@ -14,7 +14,6 @@ BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
-MESSAGE_DUMP_FILE = "messages.json.txt"
 FONT_HEADER_SIZE = 12
 
 SPANISH_UNICODE_MAP = {
@@ -40,22 +39,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print "USAGE: repack-rlb-file.py <original.rlb> <new.rlb>"
         sys.exit(1)
-
-    # messages file needs to exist
-    if not os.path.exists(MESSAGE_DUMP_FILE):
-        print "'%s' messages file not found" % (MESSAGE_DUMP_FILE)
-        sys.exit(1)
-
-    # validate the file up front
-    all_messages_list = json.loads(open(MESSAGE_DUMP_FILE, "r").read())
-
-    # turn the list into a dictionary (the data was stored as a list instead
-    # of a dictionary so that the order would be preserved)
-    all_messages = {}
-    for message_resource in all_messages_list:
-        res_num = message_resource['resource_id']
-        message_list = message_resource['message_list']
-        all_messages[res_num] = message_list
 
     # open files
     if sys.argv[1] == sys.argv[2]:
@@ -139,7 +122,11 @@ if __name__ == "__main__":
                 new_rlb.write(original_rlb.read(padding_size))
 
                 # iterate through the message strings for this resource and pack them
-                message_list = all_messages[resource['res_num']]
+                message_filename = "messages-%04d.json.txt" % (resource['res_num'])
+                if not os.path.exists(message_filename):
+                    print "Can't find file '%s' which should contain messages for resource block %d" % (message_filename, resource['res_num'])
+                    sys.exit(1)
+                message_list = json.loads(open(message_filename, "r").read())
                 message_payload = ""
                 for message in message_list:
                     for c in message['Spanish']:

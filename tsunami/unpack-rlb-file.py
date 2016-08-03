@@ -12,16 +12,10 @@ BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
-MESSAGE_DUMP_FILE = "messages.json.txt"
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print "USAGE: unpack-rlb-file.py </path/to/file.rlb>"
-        sys.exit(1)
-
-    # don't proceed if message dump file already exists
-    if os.path.exists(MESSAGE_DUMP_FILE):
-        print "'%s' already exists; exiting tool so that the dump files are not overwritten" % (MESSAGE_DUMP_FILE)
         sys.exit(1)
 
     rlb = open(sys.argv[1], "rb")
@@ -40,17 +34,16 @@ if __name__ == "__main__":
     # load the index
     rlb.seek(offset, 0)
     index = rlb.read(uncomp_size)
-    all_messages = []
     i = 0
     while 1:
         (res_num, block_type, block_offset) = struct.unpack("<HHH", index[i:i+6])
         if res_num == 0xFFFF and block_type == 0xFFFF and block_offset == 0xFFFF:
-            print "end of index"
+            #print "end of index"
             break
         offset_high_bits = block_type >> 5
         block_type &= 0x1F
         block_offset = (block_offset | (offset_high_bits << 16)) * 16
-        print "block type %d at 0x%X" % (block_type, block_offset)
+        #print "block type %d at 0x%X" % (block_type, block_offset)
 
         # check that the block has a valid signature
         rlb.seek(block_offset, 0)
@@ -60,7 +53,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         if block_type == RESOURCE_TYPE_FONT or block_type == RESOURCE_TYPE_MESSAGE:
-            print "resource #%d, type %d @ offset 0x%X" % (res_num, block_type, block_offset)
+            #print "resource #%d, type %d @ offset 0x%X" % (res_num, block_type, block_offset)
             (resource_type, entry_count) = struct.unpack("BB", header[4:6])
             if entry_count > 1:
                 print "don't know how to handle font or message resources with more than one entry"
@@ -72,7 +65,7 @@ if __name__ == "__main__":
             entry = rlb.read(ENTRY_SIZE)
             (resource_id, comp_size, uncomp_size, high, res_type, offset) = \
                 struct.unpack("<HHHBBI", entry)
-            print "  id %d, type %d, sizes: (%d, %d, %d), offset = 0x%X" % (resource_id, res_type, comp_size, uncomp_size, high, offset)
+            #print "  id %d, type %d, sizes: (%d, %d, %d), offset = 0x%X" % (resource_id, res_type, comp_size, uncomp_size, high, offset)
 
             if comp_size != uncomp_size:
                 print "Decompression not implemented yet"
@@ -83,7 +76,7 @@ if __name__ == "__main__":
 
             if block_type == RESOURCE_TYPE_FONT:
                 filename = "resource-font-%d.dat" % (res_num)
-                print " dumping font -> '%s'" % (filename)
+                print " dumping font %d -> '%s'" % (res_num, filename)
                 open(filename, "wb").write(payload)
                 font_dir = "resource-font-%d" % (res_num)
                 if not os.path.exists(font_dir):
@@ -105,11 +98,8 @@ if __name__ == "__main__":
                         else:
                             message += payload[j]
     
-                message_resource = {}
-                message_resource['resource_id'] = res_num
-                message_resource['message_list'] = message_list
-                all_messages.append(message_resource)
+                message_file = "messages-%04d.json.txt" % (res_num)
+                print "dumping message resource %d -> '%s'" % (res_num, message_file)
+                open(message_file, "w").write(json.dumps(message_list, indent=2))
         i += 6
 
-    # dump all the message strings to a JSON file
-    open(MESSAGE_DUMP_FILE, "w").write(json.dumps(all_messages, indent=2))
