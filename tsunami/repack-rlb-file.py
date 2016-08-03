@@ -36,8 +36,14 @@ SPANISH_UNICODE_MAP = {
 }
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print "USAGE: repack-rlb-file.py <original.rlb> <new.rlb>"
+    if len(sys.argv) < 4:
+        print "USAGE: repack-rlb-file.py <original.rlb> <new.rlb> </path/to/resource/files>"
+        sys.exit(1)
+
+    # make sure the resources directory is present
+    resource_dir = sys.argv[3]
+    if not os.path.exists(resource_dir):
+        print resource_dir + " does not exist"
         sys.exit(1)
 
     # open files
@@ -122,7 +128,7 @@ if __name__ == "__main__":
                 new_rlb.write(original_rlb.read(padding_size))
 
                 # iterate through the message strings for this resource and pack them
-                message_filename = "messages-%04d.json.txt" % (resource['res_num'])
+                message_filename = "%s/messages-%04d.json.txt" % (resource_dir, resource['res_num'])
                 if not os.path.exists(message_filename):
                     print "Can't find file '%s' which should contain messages for resource block %d" % (message_filename, resource['res_num'])
                     sys.exit(1)
@@ -157,8 +163,8 @@ if __name__ == "__main__":
 
         elif resource['block_type'] == RESOURCE_TYPE_FONT:
             # sort out the new font
-            font_file = "resource-font-%d.dat" % (resource['res_num'])
-            font_dir = "resource-font-%d" % (resource['res_num'])
+            font_file = "%s/resource-font-%d.dat" % (resource_dir, resource['res_num'])
+            font_dir = "%s/resource-font-%d" % (resource_dir, resource['res_num'])
             font_header = open(font_file, "rb").read(FONT_HEADER_SIZE)
             font_data = pack_tsunami_font.pack_font(font_header, font_dir)
             font_data_size = len(font_data)

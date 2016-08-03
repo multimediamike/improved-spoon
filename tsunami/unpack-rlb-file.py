@@ -14,9 +14,17 @@ RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print "USAGE: unpack-rlb-file.py </path/to/file.rlb>"
+    if len(sys.argv) < 3:
+        print "USAGE: unpack-rlb-file.py </path/to/file.rlb> </path/to/unpack/into>"
         sys.exit(1)
+
+    resource_dir = sys.argv[2]
+
+    # if the output directory already exists, don't go any farther
+    if os.path.exists(resource_dir):
+        print resource_dir + " already exists"
+        sys.exit(1)
+    os.makedirs(resource_dir)
 
     rlb = open(sys.argv[1], "rb")
 
@@ -75,10 +83,10 @@ if __name__ == "__main__":
             payload = rlb.read(uncomp_size)
 
             if block_type == RESOURCE_TYPE_FONT:
-                filename = "resource-font-%d.dat" % (res_num)
+                filename = "%s/resource-font-%d.dat" % (resource_dir, res_num)
                 print " dumping font %d -> '%s'" % (res_num, filename)
                 open(filename, "wb").write(payload)
-                font_dir = "resource-font-%d" % (res_num)
+                font_dir = "%s/resource-font-%d" % (resource_dir, res_num)
                 if not os.path.exists(font_dir):
                     os.makedirs(font_dir)
                 unpack_tsunami_font.unpack_font(open(filename, "rb"), font_dir)
@@ -98,7 +106,7 @@ if __name__ == "__main__":
                         else:
                             message += payload[j]
     
-                message_file = "messages-%04d.json.txt" % (res_num)
+                message_file = "%s/messages-%04d.json.txt" % (resource_dir, res_num)
                 print "dumping message resource %d -> '%s'" % (res_num, message_file)
                 open(message_file, "w").write(json.dumps(message_list, indent=2))
         i += 6
