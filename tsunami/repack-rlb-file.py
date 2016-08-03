@@ -114,7 +114,7 @@ if __name__ == "__main__":
         new_block_offset = new_rlb.tell()
         original_rlb.seek(resource['block_offset'], 0)
 
-        if resource['block_type'] == RESOURCE_TYPE_MESSAGE and resource['res_num'] == 100:
+        if resource['block_type'] == RESOURCE_TYPE_MESSAGE:
             # copy over the resource header and the single entry header
             print "Substituting message resource %d" % (resource['res_num'])
             header = original_rlb.read(BLOCK_HEADER_SIZE + ENTRY_SIZE)
@@ -122,44 +122,42 @@ if __name__ == "__main__":
             (sig, res_type, res_count, res_id, comp_size, uncomp_size, hi_nib, r_type, offset) = struct.unpack("<IBBHHHBBI", header)
 
             new_size = 0
-            if resource['res_num'] == 100:
-                # copy over the padding between the header and the start of the payload
-                padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE)
-                new_rlb.write(original_rlb.read(padding_size))
+            # copy over the padding between the header and the start of the payload
+            padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE)
+            new_rlb.write(original_rlb.read(padding_size))
 
-                # iterate through the message strings for this resource and pack them
-                message_filename = "%s/messages-%04d.json.txt" % (resource_dir, resource['res_num'])
-                if not os.path.exists(message_filename):
-                    print "Can't find file '%s' which should contain messages for resource block %d" % (message_filename, resource['res_num'])
-                    sys.exit(1)
-                message_list = json.loads(open(message_filename, "r").read())
-                message_payload = ""
-                for message in message_list:
-                    for c in message['Spanish']:
-                        if c in SPANISH_UNICODE_MAP:
-                            print "got a Spanish character: " + c
-                            message_payload += struct.pack("B", SPANISH_UNICODE_MAP[c])
-                        else:
-                            message_payload += struct.pack("B", ord(c))
-                        new_size += 1
-                    message_payload += struct.pack("B", 0)
+            # iterate through the message strings for this resource and pack them
+            message_filename = "%s/messages-%04d.json.txt" % (resource_dir, resource['res_num'])
+            if not os.path.exists(message_filename):
+                print "Can't find file '%s' which should contain messages for resource block %d" % (message_filename, resource['res_num'])
+                sys.exit(1)
+            message_list = json.loads(open(message_filename, "r").read())
+            message_payload = ""
+            for message in message_list:
+                for c in message['Spanish']:
+                    if c in SPANISH_UNICODE_MAP:
+                        message_payload += struct.pack("B", SPANISH_UNICODE_MAP[c])
+                    else:
+                        message_payload += struct.pack("B", ord(c))
                     new_size += 1
+                message_payload += struct.pack("B", 0)
+                new_size += 1
 
-                # record the payload
-                new_rlb.write(message_payload)
+            # record the payload
+            new_rlb.write(message_payload)
 
-                # rewind to the header and record the new size
-                current_offset = new_rlb.tell()
-                new_rlb.seek(new_block_offset + 8)
-                if new_size > 65535:
-                    print "Hey! need to encode high nibbles!"
-                    sys.exit(1)
+            # rewind to the header and record the new size
+            current_offset = new_rlb.tell()
+            new_rlb.seek(new_block_offset + 8)
+            if new_size > 65535:
+                print "Hey! need to encode high nibbles!"
+                sys.exit(1)
 
-                # write the size twice (both the compressed and uncompressed sizes)
-                new_rlb.write(struct.pack("<HH", new_size, new_size))
+            # write the size twice (both the compressed and uncompressed sizes)
+            new_rlb.write(struct.pack("<HH", new_size, new_size))
 
-                # forward to the end of the new block
-                new_rlb.seek(current_offset, 0)
+            # forward to the end of the new block
+            new_rlb.seek(current_offset, 0)
 
         elif resource['block_type'] == RESOURCE_TYPE_FONT:
             # sort out the new font
