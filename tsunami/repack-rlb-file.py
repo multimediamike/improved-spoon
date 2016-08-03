@@ -163,8 +163,8 @@ if __name__ == "__main__":
 
         elif resource['block_type'] == RESOURCE_TYPE_FONT:
             # sort out the new font
-            font_file = "%s/resource-font-%d.dat" % (resource_dir, resource['res_num'])
-            font_dir = "%s/resource-font-%d" % (resource_dir, resource['res_num'])
+            font_file = "%s/resource-font-%02d.dat" % (resource_dir, resource['res_num'])
+            font_dir = "%s/resource-font-%02d" % (resource_dir, resource['res_num'])
             font_header = open(font_file, "rb").read(FONT_HEADER_SIZE)
             font_data = pack_tsunami_font.pack_font(font_header, font_dir)
             font_data_size = len(font_data)

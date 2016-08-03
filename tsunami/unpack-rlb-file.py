@@ -83,10 +83,10 @@ if __name__ == "__main__":
             payload = rlb.read(uncomp_size)
 
             if block_type == RESOURCE_TYPE_FONT:
-                filename = "%s/resource-font-%d.dat" % (resource_dir, res_num)
+                filename = "%s/resource-font-%02d.dat" % (resource_dir, res_num)
                 print " dumping font %d -> '%s'" % (res_num, filename)
                 open(filename, "wb").write(payload)
-                font_dir = "%s/resource-font-%d" % (resource_dir, res_num)
+                font_dir = "%s/resource-font-%02d" % (resource_dir, res_num)
                 if not os.path.exists(font_dir):
                     os.makedirs(font_dir)
                 unpack_tsunami_font.unpack_font(open(filename, "rb"), font_dir)
