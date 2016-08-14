@@ -134,10 +134,6 @@ if __name__ == "__main__":
                 object_list = []
                 for si in range(0, struct_count*STRIP_STRUCT_SIZE, STRIP_STRUCT_SIZE):
                     record = records[si:si+STRIP_STRUCT_SIZE]
-                    byte_string = ""
-                    for c in record:
-                        byte_string += "%02X " % (struct.unpack("B", c)[0])
-                    byte_string = byte_string.strip()
                     record_id = struct.unpack("<H", record[12:14])[0]
                     message_list = []
                     for ri in range(44, 44 + (8 * 10), 10):
