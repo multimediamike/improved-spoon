@@ -12,9 +12,11 @@ MAIN_HEADER_SIZE = 32
 BLOCK_HEADER_SIZE = 6
 BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
+RESOURCE_TYPE_STRIP = 1
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 FONT_HEADER_SIZE = 12
+STRIP_OBJECT_SIZE = 126
 
 SPANISH_UNICODE_MAP = {
     u"¿": 128,
@@ -34,6 +36,15 @@ SPANISH_UNICODE_MAP = {
     u"ü": 142,
     u"ñ": 143
 }
+
+def pack_spanish_string(string):
+    spanish_string = ""
+    for c in string:
+        if c in SPANISH_UNICODE_MAP:
+            spanish_string += struct.pack("B", SPANISH_UNICODE_MAP[c])
+        else:
+            spanish_string += struct.pack("B", ord(c))
+    return spanish_string
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
@@ -134,14 +145,10 @@ if __name__ == "__main__":
             message_list = json.loads(open(message_filename, "r").read())
             message_payload = ""
             for message in message_list:
-                for c in message['Spanish']:
-                    if c in SPANISH_UNICODE_MAP:
-                        message_payload += struct.pack("B", SPANISH_UNICODE_MAP[c])
-                    else:
-                        message_payload += struct.pack("B", ord(c))
-                    new_size += 1
+                spanish_string = pack_spanish_string(message['Spanish'])
+                message_payload += spanish_string
                 message_payload += struct.pack("B", 0)
-                new_size += 1
+                new_size += len(spanish_string) + 1
 
             # record the payload
             new_rlb.write(message_payload)
@@ -158,6 +165,95 @@ if __name__ == "__main__":
 
             # forward to the end of the new block
             new_rlb.seek(current_offset, 0)
+
+        elif resource['block_type'] == RESOURCE_TYPE_STRIP and resource['res_num'] == 176:
+            # rewrite the strip resource
+            print "Substituting strip resource %d" % (resource['res_num'])
+
+            # load the original header and 2 expected entries
+            header = original_rlb.read(BLOCK_HEADER_SIZE)
+            entry1 = original_rlb.read(ENTRY_SIZE)
+            entry2 = original_rlb.read(ENTRY_SIZE)
+            # unpack the header and the first entry to obtain padding size
+            (sig, res_type, res_count) = struct.unpack("<IBB", header)
+            if res_count != 2:
+                print "HELP! expected strip resource to have 2 entries (found %d)" % (res_count)
+                sys.exit(1)
+            # unpack the first entry to obtain padding size
+            (res_id, comp_size, uncomp_size, hi_nib, r_type, offset1) = struct.unpack("<HHHBBI", entry1)
+            # unpack the second entry
+            (res_id, comp_size, uncomp_size, hi_nib, r_type, offset2) = struct.unpack("<HHHBBI", entry2)
+            # load the padding
+            padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE * 2)
+            padding = original_rlb.read(padding_size)
+            # load the bytes comprising the conversation objects
+            objects_size = offset2 - offset1
+            original_objects = original_rlb.read(objects_size)
+            if len(original_objects) % STRIP_OBJECT_SIZE != 0:
+                print "objects entry is %d bytes which is not a multiple of %d" % (len(original_objects), STRIP_OBJECT_SIZE)
+
+            # load the strip resource to be substituted
+            strip_filename = "%s/strip-%04d.json.txt" % (resource_dir, resource['res_num'])
+            if not os.path.exists(message_filename):
+                print "Can't find file '%s' which should contain strip data for resource block %d" % (strip_filename, resource['res_num'])
+                sys.exit(1)
+            object_list = json.loads(open(strip_filename, "r").read())
+
+            # iterate through the messages and create a new string entry
+            string_entry = ""
+            speaker_offsets = {}
+            j = 0
+            new_objects = ""
+            for obj in object_list:
+                # update the speaker offset before potentially writing the speaker string
+                speaker_offset = speaker_offsets.get(obj['speaker'])
+                if not speaker_offset:
+                    speaker_offset = len(string_entry)
+                    speaker_offsets[obj['speaker']] = speaker_offset
+                    string_entry += pack_spanish_string(obj['speaker'])
+                    string_entry += struct.pack("B", 0)
+
+                # copy the first 44 bytes of the object
+                new_objects += original_objects[j:j+44]
+
+                # iterate through the 8 10-byte structures
+                str_index = 0
+                for k in range(44, 44 + (8 * 10), 10):
+                    # unpack the structure from the original object
+                    (str_id, offset, f32, f16) = struct.unpack("<HHIH", original_objects[j+k:j+k+10])
+
+                    if str_index < len(obj['strings']):
+                        string = obj['strings'][str_index]
+
+                        # adjust the string offset
+                        offset = len(string_entry)
+
+                        # accumulate the string
+                        spanish_string = pack_spanish_string(string['Spanish'])
+                        string_entry += pack_spanish_string(string['Spanish'])
+                        string_entry += struct.pack("B", 0)
+
+                        str_index += 1
+
+                    # repack the structure
+                    new_objects += struct.pack("<HHIH", str_id, offset, f32, f16)
+
+                # pack the speaker offset
+                new_objects += struct.pack("<H", speaker_offset)
+
+                j += STRIP_OBJECT_SIZE
+
+            # write the new elements; header first
+            new_rlb.write(header)
+            # 2 entries
+            new_rlb.write(entry1)
+            new_rlb.write(entry2)
+            # padding
+            new_rlb.write(padding)
+            # modified object data structures
+            new_rlb.write(new_objects)
+            # the new string entry block
+            new_rlb.write(string_entry)
 
         elif resource['block_type'] == RESOURCE_TYPE_FONT:
             # sort out the new font
