@@ -166,7 +166,7 @@ if __name__ == "__main__":
             # forward to the end of the new block
             new_rlb.seek(current_offset, 0)
 
-        elif resource['block_type'] == RESOURCE_TYPE_STRIP and resource['res_num'] == 176:
+        elif resource['block_type'] == RESOURCE_TYPE_STRIP:
             # rewrite the strip resource
             print "Substituting strip resource %d" % (resource['res_num'])
 
@@ -184,7 +184,7 @@ if __name__ == "__main__":
             # unpack the second entry
             (res_id, comp_size, uncomp_size, hi_nib, r_type, offset2) = struct.unpack("<HHHBBI", entry2)
             # load the padding
-            padding_size = offset - (BLOCK_HEADER_SIZE + ENTRY_SIZE * 2)
+            padding_size = offset1 - (BLOCK_HEADER_SIZE + ENTRY_SIZE * 2)
             padding = original_rlb.read(padding_size)
             # load the bytes comprising the conversation objects
             objects_size = offset2 - offset1
