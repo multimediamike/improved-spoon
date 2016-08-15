@@ -191,6 +191,7 @@ if __name__ == "__main__":
             original_objects = original_rlb.read(objects_size)
             if len(original_objects) % STRIP_OBJECT_SIZE != 0:
                 print "objects entry is %d bytes which is not a multiple of %d" % (len(original_objects), STRIP_OBJECT_SIZE)
+                sys.exit(1)
 
             # load the strip resource to be substituted
             strip_filename = "%s/strip-%04d.json.txt" % (resource_dir, resource['res_num'])
@@ -242,6 +243,10 @@ if __name__ == "__main__":
                 new_objects += struct.pack("<H", speaker_offset)
 
                 j += STRIP_OBJECT_SIZE
+
+            # repack the header for entry #2 now that the new string block size is known
+            string_entry_size = len(string_entry)
+            entry2 = struct.pack("<HHHBBI", res_id, string_entry_size, string_entry_size, hi_nib, r_type, offset2)
 
             # write the new elements; header first
             new_rlb.write(header)
