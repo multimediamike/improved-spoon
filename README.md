@@ -22,7 +22,7 @@ The workflow is:
 1. './unpack-rlb-file.py /path/to/original.rlb resources/': This unpacks the translateable resources from the original RLB into a directory named 'resources/'. Note that the tool will halt if the directory already exists so that it can't overwrite existing translation work.
 2. Edit the font resources by adding the correct diacritic markers. This can be done using a graphic editor that supports PGM files, or a text editor since PGM files are simple text.
 3. Edit the individual messages and strip files, modifying the 'Spanish' strings in each English/Spanish pair.
-4 './repack-rlb-file.py /path/to/original.rlb new.rlb resources/': This will combine the original RLB file and the modified resources into a new RLB file.
+4. './repack-rlb-file.py /path/to/original.rlb new.rlb resources/': This will combine the original RLB file and the modified resources into a new RLB file.
 
 ## Missing on Lost Island
 The Python script `missing-on-lost-island/extract-data-files.py` is able to disassemble the files stored inside the Data.dat file of the game [Missing on Lost Island](http://www.mobygames.com/game/missing-on-lost-island).
