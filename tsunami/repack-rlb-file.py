@@ -230,7 +230,6 @@ if __name__ == "__main__":
                         offset = len(string_entry)
 
                         # accumulate the string
-                        spanish_string = pack_spanish_string(string['Spanish'])
                         string_entry += pack_spanish_string(string['Spanish'])
                         string_entry += struct.pack("B", 0)
 
