@@ -18,6 +18,7 @@ Presently, the tools are designed to assist in translating a game's assets to Sp
 Further, the font unpacking tool automatically adds 16 extra characters corresponding to the 16 characters needed to express Spanish text: á, é, í, ó, ú, ü, ñ (each in both upper and lower case), and the inverted punctuation marks: ¿, ¡. While the tool automatically rotates the punctuation marks, it only copies, i.e., 'n' to the right character position. It is up to the game translator to edit this character to add the correct diacritic mark.
 
 The workflow is:
+
 1. './unpack-rlb-file.py /path/to/original.rlb resources/': This unpacks the translateable resources from the original RLB into a directory named 'resources/'. Note that the tool will halt if the directory already exists so that it can't overwrite existing translation work.
 2. Edit the font resources by adding the correct diacritic markers. This can be done using a graphic editor that supports PGM files, or a text editor since PGM files are simple text.
 3. Edit the individual messages and strip files, modifying the 'Spanish' strings in each English/Spanish pair.
