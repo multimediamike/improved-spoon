@@ -6,7 +6,6 @@
 import json
 import struct
 import sys
-import tempfile
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
@@ -38,13 +37,13 @@ if __name__ == "__main__":
     # convert UTF-8 string to UTF-16 that C# likes
     utf16_string = translated.encode("utf-16-le")
 
-    # write the data to a tempfile and re-read it as binary (don't
-    # know a way to convert UTF-16 string to binary string otherwise)
-    tf = tempfile.NamedTemporaryFile()
-    tf.write(utf16_string)
-    tf.flush()
-    bin_string = open(tf.name, "rb").read()
-    tf.close()
+    # Write the data to a tempfile and re-read it as binary (don't know a
+    # way to convert UTF-16 string to binary string otherwise). Use the
+    # specifed output file as a temporary file instead of a proper Python
+    # tempfile so that Windows doesn't have to read from an open writable
+    # file.
+    open(out_ldt, "wb").write(utf16_string)
+    bin_string = open(out_ldt, "rb").read()
     enc_string = ""
     for i in xrange(len(bin_string)):
         byte = struct.unpack("B", bin_string[i])[0]
