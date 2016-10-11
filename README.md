@@ -26,3 +26,16 @@ The workflow is:
 
 ## Missing on Lost Island
 The Python script `missing-on-lost-island/extract-data-files.py` is able to disassemble the files stored inside the Data.dat file of the game [Missing on Lost Island](http://www.mobygames.com/game/missing-on-lost-island).
+
+## Duke Grabowski: Mighty Swashbuckler!
+The Python scripts in the `duke-grabowski/` directory help with translating subtitle files from the adventure game [Duke Grabowski: Mighty Swashbuckler](https://www.kickstarter.com/projects/venture-moon/duke-grabowski-mighty-swashbuckler-point-and-click). The subtitles in this game are stored in files with the extension LDT, e.g., INTRO_TEXT_EN.LDT contains the English text for the introductory video. These files are obfuscated with a key hardcoded in the program's code. This key is necessary for running these tools.
+
+Workflow:
+
+1. './ldt2json.py FILE.LDT "key-material" FILE.json': This command will de-obfuscate FILE.LDT using the specified key and dump the subtitles into FILE.json.
+2. Translate the strings inside of FILE.json. Each string is shown twice, once with the key 'original' for reference and once with the key 'translated', which will be used for the next step.
+3. './json2ldt.py FILE.json "key-material" NEW_FILE.LDT': This command will use the translated string in FILE.json and create a new subtitle file named NEW_FILE.LDT that can be read by the Duke Grabowski engine.
+
+When specifying the key to the various command lines, enclose it with quotes and be sure to escape any special characters. 
+
+For basic testing, unpacking an LDT to a JSON file and immediately repacking it to a new LDT should produce a new LDT file that is bit-identical to the original LDT file.
