@@ -27,6 +27,8 @@ if __name__ == "__main__":
     for i in xrange(len(ldt)):
         enc_byte = struct.unpack("B", ldt[i])[0]
         dec_byte = enc_byte - key_table[i % key_len]
+        if dec_byte < 0:
+            dec_byte = 256 + dec_byte
         try:
             utf16_bytes += struct.pack("B", dec_byte)
         except struct.error:

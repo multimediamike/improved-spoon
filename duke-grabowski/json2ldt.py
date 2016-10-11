@@ -47,7 +47,7 @@ if __name__ == "__main__":
     enc_string = ""
     for i in xrange(len(bin_string)):
         byte = struct.unpack("B", bin_string[i])[0]
-        enc_byte = byte + key_table[i % key_len]
+        enc_byte = (byte + key_table[i % key_len]) % 256
         enc_string += struct.pack("B", enc_byte)
 
     # write the final, encrypted output
