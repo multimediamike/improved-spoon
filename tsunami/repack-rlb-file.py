@@ -47,6 +47,38 @@ def pack_spanish_string(string):
             spanish_string += struct.pack("B", ord(c))
     return spanish_string
 
+def pack_pgm_lines_to_visage(width, height, lines):
+    """
+    # raw encoder
+    encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 0)
+    for y in xrange(height):
+        pixels = lines[y].split()
+        for pixel in pixels:
+            encoding += struct.pack("B", int(pixel))
+    """
+
+    # RLE encoder
+    encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 2)
+    for y in xrange(height):
+        pixels = lines[y].split()
+        i = 0
+        pixels_remaining = len(pixels)
+        while pixels_remaining > 0:
+            if pixels_remaining > 127:
+                pixel_run = 127
+            else:
+                pixel_run = pixels_remaining
+
+            encoding += struct.pack("B", pixel_run)
+
+            pixels_remaining -= pixel_run
+            while pixel_run > 0:
+                encoding += struct.pack("B", int(pixels[i]))
+                i += 1
+                pixel_run -= 1
+
+    return encoding
+
 if __name__ == "__main__":
     if len(sys.argv) < 4:
         print "USAGE: repack-rlb-file.py <original.rlb> <new.rlb> </path/to/resource/files>"
@@ -314,11 +346,7 @@ if __name__ == "__main__":
                 height = int(height)
 
                 # encode the visage header and a the pixels into a binary blob
-                encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 0)
-                for y in xrange(height):
-                    pixels = lines[3+y].split()
-                    for pixel in pixels:
-                        encoding += struct.pack("B", int(pixel))
+                encoding = pack_pgm_lines_to_visage(width, height, lines[3:])
                 visages.append(encoding)
 
                 # unpack, modify, and write the next entry record
