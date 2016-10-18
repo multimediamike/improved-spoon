@@ -28,6 +28,64 @@ def read_cstr(block, offset):
             cstr += c
             offset += 1
 
+def unpack_rle_visage(data, width, height, filename):
+    netpbm = open(filename, "w")
+    netpbm.write("P2\n%d %d\n255\n" % (width, height))
+
+    # perform RLE decompression
+    rle_size = len(data)
+    k = 0
+    current_width = width
+    while k < rle_size:
+        byte = struct.unpack("B", data[k])[0]
+        k += 1
+
+        if byte & 0x80 == 0:
+            # copy byte string
+            current_width -= byte
+            while byte > 0:
+                pixel = struct.unpack("B", data[k])[0]
+                k += 1
+                netpbm.write("%d " % (pixel))
+                byte -= 1
+        elif byte & 0x40 == 0:
+            # skip bytes (fill with transparent)
+            byte &= 0x3F
+            current_width -= byte
+            while byte > 0:
+                netpbm.write("%d " % (transparent))
+                byte -= 1
+        else:
+            # fetch the next byte and expand it
+            byte &= 0x3F
+            current_width -= byte
+            pixel = struct.unpack("B", data[k])[0]
+            k += 1
+            while byte > 0:
+                netpbm.write("%d " % (pixel))
+                byte -= 1
+
+        if current_width <= 0:
+            netpbm.write("\n")
+            current_width = width
+
+    netpbm.close()
+
+def unpack_raw_visage(data, width, height, filename):
+    netpbm = open(filename, "w")
+    netpbm.write("P2\n%d %d\n255\n" % (width, height))
+
+    # perform RLE decompression
+    k = 0
+    for y in xrange(height):
+        for x in xrange(width):
+            pixel = struct.unpack("B", data[k])[0]
+            k += 1
+            netpbm.write("%d " % (pixel))
+        netpbm.write("\n")
+
+    netpbm.close()
+
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print "USAGE: unpack-rlb-file.py </path/to/file.rlb> </path/to/unpack/into>"
@@ -163,56 +221,13 @@ if __name__ == "__main__":
                         print "  skipping visage %d-%d (%dx%d)" % (res_num, j, width, height)
                         continue
                     print "  visage %d-%d: %d, %d, %d, (%d, %d), (%d, %d), 0x%02X, 0x%02X" % (res_num, j, unk1, unk2, unk3, width, height, center_x, center_y, transparent, flags)
-                    rle_data = payload[16:]
                     filename = "%s/visage-%d-%d.pgm" % (resource_dir, res_num, j)
                     j += 1
-                    netpbm = open(filename, "w")
-                    netpbm.write("P2\n%d %d\n255\n" % (width, height))
-
-                    # perform RLE decompression
                     rle_compressed = flags & 0x02
-                    rle_size = len(rle_data)
-                    k = 0
-                    current_width = width
-                    while k < rle_size:
-                        if rle_compressed:
-                            byte = struct.unpack("B", rle_data[k])[0]
-                            k += 1
-                        else:
-                            # this uses the RLE decoder to unpack a raw image
-                            # (falls through the 'else' condition below)
-                            byte = 0xC1
-
-                        if byte & 0x80 == 0:
-                            # copy byte string
-                            current_width -= byte
-                            while byte > 0:
-                                pixel = struct.unpack("B", rle_data[k])[0]
-                                k += 1
-                                netpbm.write("%d " % (pixel))
-                                byte -= 1
-                        elif byte & 0x40 == 0:
-                            # skip bytes (fill with transparent)
-                            byte &= 0x3F
-                            current_width -= byte
-                            while byte > 0:
-                                netpbm.write("%d " % (transparent))
-                                byte -= 1
-                        else:
-                            # fetch the next byte and expand it
-                            byte &= 0x3F
-                            current_width -= byte
-                            pixel = struct.unpack("B", rle_data[k])[0]
-                            k += 1
-                            while byte > 0:
-                                netpbm.write("%d " % (pixel))
-                                byte -= 1
-
-                        if current_width <= 0:
-                            netpbm.write("\n")
-                            current_width = width
-
-                    netpbm.close()
+                    if rle_compressed:
+                        unpack_rle_visage(payload[16:], width, height, filename)
+                    else:
+                        unpack_raw_visage(payload[16:], width, height, filename)
 
         # advance to next index entry
         i += 6
