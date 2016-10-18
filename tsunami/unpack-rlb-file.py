@@ -11,11 +11,12 @@ BLOCK_HEADER_SIZE = 6
 BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
 RESOURCE_TYPE_STRIP = 1
+RESOURCE_TYPE_VISAGE = 4
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 STRIP_STRUCT_SIZE = 126
 
-HANDLED_RESOURCE_TYPES = [ RESOURCE_TYPE_STRIP, RESOURCE_TYPE_MESSAGE, RESOURCE_TYPE_FONT ]
+HANDLED_RESOURCE_TYPES = [ RESOURCE_TYPE_STRIP, RESOURCE_TYPE_VISAGE, RESOURCE_TYPE_MESSAGE, RESOURCE_TYPE_FONT ]
 
 def read_cstr(block, offset):
     cstr = ""
@@ -65,7 +66,7 @@ if __name__ == "__main__":
         offset_high_bits = block_type >> 5
         block_type &= 0x1F
         block_offset = (block_offset | (offset_high_bits << 16)) * 16
-        #print "block type %d at 0x%X" % (block_type, block_offset)
+        #print "%d: block type %d at 0x%X" % (res_num, block_type, block_offset)
 
         # check that the block has a valid signature
         rlb.seek(block_offset, 0)
@@ -75,7 +76,7 @@ if __name__ == "__main__":
             sys.exit(1)
 
         if block_type in HANDLED_RESOURCE_TYPES:
-            #print "resource #%d, type %d @ offset 0x%X" % (res_num, block_type, block_offset)
+            print "resource #%d, type %d @ offset 0x%X" % (res_num, block_type, block_offset)
             (resource_type, entry_count) = struct.unpack("BB", header[4:6])
             if resource_type != block_type:
                 print "resource type mismatch (index says %d, block says %d)" % (block_type, resource_type)
@@ -86,7 +87,7 @@ if __name__ == "__main__":
                 entry_bytes = rlb.read(ENTRY_SIZE)
                 (entry_id, comp_size, uncomp_size, high, res_type, offset) = \
                     struct.unpack("<HHHBBI", entry_bytes)
-                #print "  id %d, type %d, sizes: (%d, %d, %d), offset = 0x%X" % (entry_id, res_type, comp_size, uncomp_size, high, offset)
+                print "  id %d, type %d, sizes: (%d, %d, %d), offset = 0x%X" % (entry_id, res_type, comp_size, uncomp_size, high, offset)
 
                 if comp_size != uncomp_size:
                     print "Decompression not implemented yet"
@@ -152,6 +153,66 @@ if __name__ == "__main__":
                     strip_file = "%s/strip-%04d.json.txt" % (resource_dir, res_num)
                     print "dumping strip resource %d -> '%s'" % (res_num, strip_file)
                     open(strip_file, "w").write(json.dumps(object_list, indent=2))
+            elif block_type == RESOURCE_TYPE_VISAGE and res_num == 4005:
+                print "dumping %d visage(s) from resource %d" % (len(entries) - 1, res_num)
+                for j in range(1, len(entries)):
+                    entry = entries[j]
+                    payload = entry['payload']
+                    (unk1, unk2, unk3, width, height, center_x, center_y, transparent, flags) = struct.unpack("<HHHHHHHBB", payload[0:16])
+                    if width == 0 or height == 0:
+                        print "  skipping visage %d-%d (%dx%d)" % (res_num, j, width, height)
+                        continue
+                    print "  visage %d-%d: %d, %d, %d, (%d, %d), (%d, %d), 0x%02X, 0x%02X" % (res_num, j, unk1, unk2, unk3, width, height, center_x, center_y, transparent, flags)
+                    rle_data = payload[16:]
+                    filename = "%s/visage-%d-%d.pgm" % (resource_dir, res_num, j)
+                    j += 1
+                    netpbm = open(filename, "w")
+                    netpbm.write("P2\n%d %d\n255\n" % (width, height))
+
+                    # perform RLE decompression
+                    rle_compressed = flags & 0x02
+                    rle_size = len(rle_data)
+                    k = 0
+                    current_width = width
+                    while k < rle_size:
+                        if rle_compressed:
+                            byte = struct.unpack("B", rle_data[k])[0]
+                            k += 1
+                        else:
+                            # this uses the RLE decoder to unpack a raw image
+                            # (falls through the 'else' condition below)
+                            byte = 0xC1
+
+                        if byte & 0x80 == 0:
+                            # copy byte string
+                            current_width -= byte
+                            while byte > 0:
+                                pixel = struct.unpack("B", rle_data[k])[0]
+                                k += 1
+                                netpbm.write("%d " % (pixel))
+                                byte -= 1
+                        elif byte & 0x40 == 0:
+                            # skip bytes (fill with transparent)
+                            byte &= 0x3F
+                            current_width -= byte
+                            while byte > 0:
+                                netpbm.write("%d " % (transparent))
+                                byte -= 1
+                        else:
+                            # fetch the next byte and expand it
+                            byte &= 0x3F
+                            current_width -= byte
+                            pixel = struct.unpack("B", rle_data[k])[0]
+                            k += 1
+                            while byte > 0:
+                                netpbm.write("%d " % (pixel))
+                                byte -= 1
+
+                        if current_width <= 0:
+                            netpbm.write("\n")
+                            current_width = width
+
+                    netpbm.close()
 
         # advance to next index entry
         i += 6

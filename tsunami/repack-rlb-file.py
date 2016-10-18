@@ -13,6 +13,7 @@ BLOCK_HEADER_SIZE = 6
 BLOCK_SIGNATURE = "TMI-"
 ENTRY_SIZE = 12
 RESOURCE_TYPE_STRIP = 1
+RESOURCE_TYPE_VISAGE = 4
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
 FONT_HEADER_SIZE = 12
@@ -282,6 +283,64 @@ if __name__ == "__main__":
 
             # write the new font data
             new_rlb.write(font_data)
+
+        elif resource['block_type'] == RESOURCE_TYPE_VISAGE and resource['res_num'] == 4005:
+            # encode visage resource #4005
+            # start by copying the header over
+            header = original_rlb.read(BLOCK_HEADER_SIZE)
+            new_rlb.write(header)
+            (sig, res_type, res_count) = struct.unpack("<IBB", header)
+
+            # load the first entry, get the useful information, and write the
+            # entry to the new file
+            entry_record = original_rlb.read(ENTRY_SIZE)
+            (resource_id, comp_size, uncomp_size, high, res_type, index_offset) = \
+                struct.unpack("<HHHBBI", entry_record)
+            extra_reserved_byte_count = index_offset - (BLOCK_HEADER_SIZE + res_count * ENTRY_SIZE)
+            entry_0_size = comp_size
+            current_offset = index_offset + comp_size
+            new_rlb.write(entry_record)
+
+            # iterate over the images and build both the entry table and payload at the same time
+            visages = []
+            for j in xrange(1, res_count):
+                filename = "%s/visage-4005-%d.pgm" % (resource_dir, j)
+
+                # parse the PGM header
+                lines = open(filename, "r").read().splitlines()
+                signature = lines[0].strip()
+                (width, height) = lines[1].split()
+                width = int(width)
+                height = int(height)
+
+                # encode the visage header and a the pixels into a binary blob
+                encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 0)
+                for y in xrange(height):
+                    pixels = lines[3+y].split()
+                    for pixel in pixels:
+                        encoding += struct.pack("B", int(pixel))
+                visages.append(encoding)
+
+                # unpack, modify, and write the next entry record
+                entry_record = original_rlb.read(ENTRY_SIZE)
+                (resource_id, comp_size, uncomp_size, high, res_type, index_offset) = \
+                    struct.unpack("<HHHBBI", entry_record)
+                comp_size = uncomp_size = len(encoding)
+                index_offset = current_offset
+                current_offset += len(encoding)
+                entry_record = struct.pack("<HHHBBI",
+                    resource_id, comp_size, uncomp_size, high, res_type, index_offset)
+                new_rlb.write(entry_record)
+
+            # copy over the reserved area
+            new_rlb.write(original_rlb.read(extra_reserved_byte_count))
+
+            # write the first, special entry
+            new_rlb.write(original_rlb.read(entry_0_size))
+
+            # finally, write each visage
+            for visage in visages:
+                new_rlb.write(visage)
 
         else:
             new_rlb.write(original_rlb.read(size))
