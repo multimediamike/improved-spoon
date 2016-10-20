@@ -38,11 +38,7 @@ if __name__ == "__main__":
     utf8_string = utf16_string.encode("utf-8")
 
     # Format of a subtitle in the LDT file:
-    #  Timestamp<!>Duration<!><!>Subtitle<!>
-    # The timestamp and duration fields are floating point numbers expressed
-    # as text and represent seconds. The subtitle text is surrounded by the
-    # <!>. Thus, by splitting the string on '<!>', there are 4 components
-    # per subtitle.
+    #  Timestamp<!>Duration<!>Subtitle1<!>Subtitle2<!>
     ldt_parts = utf8_string.split("<!>")
 
     # total number of parts should be 4 per string, plus 1 due to the
@@ -56,13 +52,17 @@ if __name__ == "__main__":
     for i in xrange((len(ldt_parts) - 1) / 4):
         timestamp = ldt_parts[i*4+0]
         duration = ldt_parts[i*4+1]
-        subtitle = ldt_parts[i*4+3]
-        subtitles.append({
-            'timestamp': timestamp,
-            'duration': duration,
-            'original': subtitle,
-            'translated': subtitle
-        })
+        subtitle1 = ldt_parts[i*4+2]
+        subtitle2 = ldt_parts[i*4+3]
+        subtitle_parts = []
+        subtitle_parts.append({'timestamp': timestamp})
+        subtitle_parts.append({'duration': duration})
+        subtitle_parts.append({'original_1': subtitle1})
+        subtitle_parts.append({'translated_1': subtitle1})
+        subtitle_parts.append({'original_2': subtitle2})
+        subtitle_parts.append({'translated_2': subtitle2})
+
+        subtitles.append(subtitle_parts)
 
     # write the subtitle data to a JSON file to be translated
     print "dumping strings to '%s'" % (output_json)

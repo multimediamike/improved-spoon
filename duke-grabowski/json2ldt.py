@@ -26,12 +26,13 @@ if __name__ == "__main__":
     subtitles = json.loads(open(sys.argv[1], "r").read())
     translated = u""
     for subtitle in subtitles:
-        translated += subtitle['timestamp']
+        translated += subtitle[0]['timestamp']
         translated += "<!>"
-        translated += subtitle['duration']
+        translated += subtitle[1]['duration']
         translated += "<!>"
+        translated += subtitle[3]['translated_1']
         translated += "<!>"
-        translated += subtitle['translated']
+        translated += subtitle[5]['translated_2']
         translated += "<!>"
 
     # convert UTF-8 string to UTF-16 that C# likes
