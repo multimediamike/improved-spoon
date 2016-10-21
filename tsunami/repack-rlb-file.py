@@ -58,7 +58,7 @@ def pack_pgm_lines_to_visage(width, height, lines):
     """
 
     # RLE encoder
-    encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 2)
+    encoding = struct.pack("<HHHHHHHBB", 1, 6, 0, width, height, 0, 0, 0, 2)
     for y in xrange(height):
         pixels = lines[y].split()
         i = 0
