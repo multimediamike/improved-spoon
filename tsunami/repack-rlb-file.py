@@ -47,7 +47,7 @@ def pack_spanish_string(string):
             spanish_string += struct.pack("B", ord(c))
     return spanish_string
 
-def pack_pgm_lines_to_visage(width, height, lines):
+def pack_p2_pgm_lines_to_visage(width, height, lines):
     """
     # raw encoder
     encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 0)
@@ -74,6 +74,39 @@ def pack_pgm_lines_to_visage(width, height, lines):
             pixels_remaining -= pixel_run
             while pixel_run > 0:
                 encoding += struct.pack("B", int(pixels[i]))
+                i += 1
+                pixel_run -= 1
+
+    return encoding
+
+def pack_p5_pgm_lines_to_visage(width, height, data):
+    """
+    # raw encoder
+    encoding = struct.pack("<HHHHHHHBB", 6, 1, 0, width, height, 0, 0, 0, 0)
+    for y in xrange(height):
+        pixels = lines[y].split()
+        for pixel in pixels:
+            encoding += struct.pack("B", int(pixel))
+    """
+
+    # RLE encoder
+    encoding = struct.pack("<HHHHHHHBB", 1, 6, 0, width, height, 0, 0, 0, 2)
+    pixel_index = 0
+    for y in xrange(height):
+        i = 0
+        pixels_remaining = width
+        while pixels_remaining > 0:
+            if pixels_remaining > 127:
+                pixel_run = 127
+            else:
+                pixel_run = pixels_remaining
+
+            encoding += struct.pack("B", pixel_run)
+
+            pixels_remaining -= pixel_run
+            while pixel_run > 0:
+                encoding += data[pixel_index]
+                pixel_index += 1
                 i += 1
                 pixel_run -= 1
 
@@ -339,14 +372,22 @@ if __name__ == "__main__":
                 filename = "%s/visage-4005-%d.pgm" % (resource_dir, j)
 
                 # parse the PGM header
-                lines = open(filename, "r").read().splitlines()
-                signature = lines[0].strip()
-                (width, height) = lines[1].split()
+                pgm = open(filename, "r")
+                signature = pgm.readline().strip()
+                (width, height) = pgm.readline().split()
                 width = int(width)
                 height = int(height)
+                pgm.readline()  # throwaway
 
                 # encode the visage header and a the pixels into a binary blob
-                encoding = pack_pgm_lines_to_visage(width, height, lines[3:])
+                if signature == "P2":
+                    lines = pgm.read().splitlines()
+                    encoding = pack_p2_pgm_lines_to_visage(width, height, lines)
+                elif signature == "P5":
+                    data = pgm.read()
+                    encoding = pack_p5_pgm_lines_to_visage(width, height, data)
+                else:
+                    print "problem reading " + filename
                 visages.append(encoding)
 
                 # unpack, modify, and write the next entry record
