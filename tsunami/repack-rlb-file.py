@@ -374,7 +374,11 @@ if __name__ == "__main__":
                 # parse the PGM header
                 pgm = open(filename, "r")
                 signature = pgm.readline().strip()
-                (width, height) = pgm.readline().split()
+                nextline = pgm.readline()
+                if nextline.startswith('#'):
+                    # discard comment and fetch dimensions
+                    nextline = pgm.readline()
+                (width, height) = nextline.split()
                 width = int(width)
                 height = int(height)
                 pgm.readline()  # throwaway
