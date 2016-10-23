@@ -14,9 +14,12 @@ RESOURCE_TYPE_STRIP = 1
 RESOURCE_TYPE_VISAGE = 4
 RESOURCE_TYPE_MESSAGE = 6
 RESOURCE_TYPE_FONT = 7
+RESOURCE_TYPE_BITMAP = 14
+RESOURCE_TYPE_BITMAP_18 = 18
 STRIP_STRUCT_SIZE = 126
 
-HANDLED_RESOURCE_TYPES = [ RESOURCE_TYPE_STRIP, RESOURCE_TYPE_VISAGE, RESOURCE_TYPE_MESSAGE, RESOURCE_TYPE_FONT ]
+HANDLED_RESOURCE_TYPES = [ RESOURCE_TYPE_STRIP, RESOURCE_TYPE_VISAGE,
+    RESOURCE_TYPE_MESSAGE, RESOURCE_TYPE_FONT, RESOURCE_TYPE_BITMAP_18 ]
 
 def read_cstr(block, offset):
     cstr = ""
@@ -228,6 +231,42 @@ if __name__ == "__main__":
                         unpack_rle_visage(payload[16:], width, height, filename)
                     else:
                         unpack_raw_visage(payload[16:], width, height, filename)
+            elif block_type == RESOURCE_TYPE_BITMAP:
+                print "dumping bitmap resource %d" % (res_num)
+                filename = "%s/bitmap-%d.pgm" % (resource_dir, res_num)
+                (bitmap_width, bitmap_height) = struct.unpack("<HH", entries[0]['payload'][0:4])
+
+                # allocate a bitmap array and plot the tiles into the right spots
+                bitmap = [0] * (bitmap_width * bitmap_height)
+                j = 1
+                BITMAP_TILE_WIDTH = 160
+                BITMAP_TILE_HEIGHT = 100
+                for tile_x in xrange(bitmap_width / BITMAP_TILE_WIDTH):
+                    for tile_y in xrange(bitmap_height / BITMAP_TILE_HEIGHT):
+                        print "tile %d: (%d, %d)" % (j, tile_x, tile_y)
+                        payload = entries[j]['payload']
+                        j += 1
+                        src = 0
+                        for y in xrange(BITMAP_TILE_HEIGHT):
+                            dest = (tile_y * BITMAP_TILE_HEIGHT + y) * bitmap_width + tile_x * BITMAP_TILE_WIDTH
+                            for x in xrange(BITMAP_TILE_WIDTH):
+                                bitmap[dest] = struct.unpack("B", payload[src])[0]
+                                src += 1
+                                dest += 1
+
+                # write the bitmap to a PGM file
+                pgm = open(filename, "wb")
+                pgm.write("P5\n%d %d\n255\n" % (bitmap_width, bitmap_height))
+                for pixel in bitmap:
+                    pgm.write(struct.pack("B", pixel))
+                pgm.close()
+            elif block_type == RESOURCE_TYPE_BITMAP_18:
+                filename = "%s/bitmap18-%d.pgm" % (resource_dir, res_num)
+                print "dumping bitmap (type 18) resource %d -> '%s'" % (res_num, filename)
+                pgm = open(filename, "wb")
+                pgm.write("P5\n320 200\n255\n")
+                pgm.write(entries[0]['payload'])
+                pgm.close()
 
         # advance to next index entry
         i += 6
