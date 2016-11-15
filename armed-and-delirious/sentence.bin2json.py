@@ -39,4 +39,4 @@ if __name__ == "__main__":
     }
 
     print "dumping strings from '%s' -> '%s'" % (infilename, outfilename)
-    open(outfilename, "wb").write(json.dumps(output_dictionary, indent=4))
+    open(outfilename, "wb").write(json.dumps(output_dictionary, indent=4, ensure_ascii=False))
