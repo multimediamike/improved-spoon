@@ -52,3 +52,6 @@ Workflow:
 3. './json2sentence.bin.py strings.json NEW_SENTENCE.BIN': This command will use the translated strings in strings.json and create a new subtitle file named NEW_SENTENCE.BIN that can be read by the Armed and Dangerous engine.
 
 For basic testing, unpacking SENTENCE.BIN to a JSON file and immediately repacking it to a new SENTENCE.BIN file should produce a new file that is bit-identical to the original file.
+
+## The Hardy Boys: The Hidden Theft
+The Python script `xpec-csv/xpec-binary2text-csv.py` can convert binary CSV files found on the Wii version of [The Hardy Boys: The Hidden Theft](http://www.mobygames.com/game/hardy-boys-the-hidden-theft) into a textual CSV file that should be able to be used on the PC version of the same game.
