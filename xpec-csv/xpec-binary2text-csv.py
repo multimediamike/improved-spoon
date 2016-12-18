@@ -98,7 +98,7 @@ if __name__ == "__main__":
             # then escape the quotes as well.
             if u',' in field_utf8:
                 if '"' in field_utf8:
-                    field_utf8 = field_utf8.replace('"', '\\"')
+                    field_utf8 = field_utf8.replace('"', '""')
                 field_utf8 = '"' + field_utf8 + '"'
 
             # write the field
