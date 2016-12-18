@@ -55,3 +55,5 @@ For basic testing, unpacking SENTENCE.BIN to a JSON file and immediately repacki
 
 ## The Hardy Boys: The Hidden Theft
 The Python script `xpec-csv/xpec-binary2text-csv.py` can convert binary CSV files found on the Wii version of [The Hardy Boys: The Hidden Theft](http://www.mobygames.com/game/hardy-boys-the-hidden-theft) into a textual CSV file that should be able to be used on the PC version of the same game.
+
+[This page describes the 2 different CSV variants in play.](http://wiki.xentax.com/index.php/CSV)
