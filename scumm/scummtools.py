@@ -34,6 +34,21 @@ class HETree:
         self.isRoot = isRoot
 
     def parseBlob(self, blob):
+        # perform a basic sanity check at the root level: make sure that
+        # the initial tag is ASCII and the size is less than file size
+        if not all(char in self.tagChars for char in blob[0:4]):
+            print "First tag of resource is not ASCII"
+            return False
+        size = struct.unpack(">I", blob[4:8])[0]
+        if size > len(blob):
+            print "First chunk size is larger than file size (%d > %d)" % (size, len(blob))
+            return False
+
+        # proceed with parsing
+        self.recurseParseBlob(blob)
+        return True
+
+    def recurseParseBlob(self, blob):
         i = 0
         blob_size = len(blob)
         while i < blob_size:
@@ -57,16 +72,6 @@ class HETree:
                 self.array.append(subtree)
             else:
                 self.array.append(HEChunk(tag, blob[i:i+payloadSize]))
-                if tag == "LSCR":
-                    payload = blob[i:i+payloadSize]
-                    lscrStrings = self.lscrStringsPattern.findall(payload)
-                    for (stringId, string) in lscrStrings:
-                        if string not in stringList:
-                            stringList[string] = [stringId]
-                        else:
-                            stringList[string].append(stringId)
-                        for char in string:
-                            asciiHistogram[char] += 1
             i += payloadSize
 
     # given an open file handle (f), serialize the tree to the file
@@ -96,6 +101,42 @@ class HETree:
             f.write(struct.pack(">I", totalSize))
             f.seek(currentOffset, os.SEEK_SET)
         return totalSize
+
+    def dumpStringsAndFonts(self, outDir):
+        stringList = {}
+        fontList = []
+        self.recurseDumpStringsAndFonts(outDir, stringList, fontList)
+        fontCounter = 0
+        for font in fontList:
+            i = 0
+            (size, version) = struct.unpack("<IH", font.payload[i:i+6])
+            i += 6
+            colorMap = font.payload[i:i+15]
+            i += 15
+            (bitsPerPixel, fontHeight, numChars) = struct.unpack("<BBH", font.payload[i:i+4])
+            print "CHAR", fontCounter, size, version, bitsPerPixel, fontHeight, numChars
+            fontCounter += 1
+            for n in range(numChars):
+                print "  ", n, struct.unpack("<I", font.payload[i:i+4])[0]
+                i += 4
+
+    def recurseDumpStringsAndFonts(self, outDir, stringList, fontList):
+        for item in self.array:
+            if item.__class__.__name__ == "HETree":
+                item.recurseDumpStringsAndFonts(outDir, stringList, fontList)
+            else:
+                if item.tag == "LSCR":
+                    payload = item.payload
+                    lscrStrings = self.lscrStringsPattern.findall(payload)
+                    for (stringId, string) in lscrStrings:
+                        if string not in stringList:
+                            stringList[string] = [stringId]
+                        else:
+                            stringList[string].append(stringId)
+                        for char in string:
+                            asciiHistogram[char] += 1
+                elif item.tag == "CHAR":
+                    fontList.append(item)
 
     def printTree(self, depth=0):
         for item in self.array:
@@ -146,10 +187,10 @@ if __name__ == "__main__":
 
     root = HETree(None, isRoot=True)
     root.parseBlob(data)
-    root.printTree()
-    f = open("newfile", "wb")
-    root.writeTree(f)
-    print json.dumps(stringList, indent=4)
+    #root.printTree()
+    #f = open("newfile", "wb")
+    #root.writeTree(f)
+    #print json.dumps(stringList, indent=4)
     unusedChars = []
     for char in sorted(asciiHistogram.keys()):
         if asciiHistogram[char] == 0:
