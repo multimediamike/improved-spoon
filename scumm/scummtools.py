@@ -66,7 +66,7 @@ class HETree:
                 if all(char in self.tagChars for char in blob[i:i+4]):
                     nextTag = blob[i:i+4]
                 nextSize = struct.unpack(">I", blob[i+4:i+8])[0]
-            if nextTag and nextTag not in ["DIGI"] and (nextSize - self.preambleSize) < payloadSize:
+            if nextTag and nextTag not in ["DIGI", "SDAT"] and (nextSize - self.preambleSize) < payloadSize:
                 subtree = HETree(tag)
                 subtree.parseBlob(blob[i:i+payloadSize])
                 self.array.append(subtree)
