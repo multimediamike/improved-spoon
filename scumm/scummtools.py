@@ -11,7 +11,7 @@ import os
 import re
 import struct
 
-stringList = {}
+stringDict = {}
 asciiHistogram = {}
 for i in range(32, 127):
     asciiHistogram[chr(i)] = 0
@@ -102,37 +102,59 @@ class HETree:
             f.seek(currentOffset, os.SEEK_SET)
         return totalSize
 
+    def dumpFont(self, font, fontDir):
+        print fontDir
+        """
+        print outDir
+        i = 0
+        (size, version) = struct.unpack("<IH", font.payload[i:i+6])
+        i += 6
+        colorMap = font.payload[i:i+15]
+        i += 15
+        (bitsPerPixel, fontHeight, numChars) = struct.unpack("<BBH", font.payload[i:i+4])
+        print "CHAR", fontCounter, size, version, bitsPerPixel, fontHeight, numChars
+        fontCounter += 1
+        for n in range(numChars):
+            print "  ", n, struct.unpack("<I", font.payload[i:i+4])[0]
+            i += 4
+        """
+
+    def writeStrings(self, stringDict, stringJsonFile):
+        translatedList = []
+        for string in stringDict:
+            item = {
+                "English": string,
+                "Spanish": string,
+                "_idList": stringDict[string]
+            }
+            translatedList.append(item)
+        jsonFile = open(stringJsonFile, "wb").write(json.dumps(translatedList, indent=4, sort_keys=True))
+
     def dumpStringsAndFonts(self, outDir):
-        stringList = {}
+        stringDict = {}
         fontList = []
-        self.recurseDumpStringsAndFonts(outDir, stringList, fontList)
+        self.recurseDumpStringsAndFonts(outDir, stringDict, fontList)
         fontCounter = 0
         for font in fontList:
-            i = 0
-            (size, version) = struct.unpack("<IH", font.payload[i:i+6])
-            i += 6
-            colorMap = font.payload[i:i+15]
-            i += 15
-            (bitsPerPixel, fontHeight, numChars) = struct.unpack("<BBH", font.payload[i:i+4])
-            print "CHAR", fontCounter, size, version, bitsPerPixel, fontHeight, numChars
+            fontDir = outDir + "/font-%02d" % (fontCounter)
+            self.dumpFont(font, fontDir)
             fontCounter += 1
-            for n in range(numChars):
-                print "  ", n, struct.unpack("<I", font.payload[i:i+4])[0]
-                i += 4
+        stringJsonFile = outDir + "/strings.json"
+        self.writeStrings(stringDict, stringJsonFile)
 
-    def recurseDumpStringsAndFonts(self, outDir, stringList, fontList):
+    def recurseDumpStringsAndFonts(self, outDir, stringDict, fontList):
         for item in self.array:
             if item.__class__.__name__ == "HETree":
-                item.recurseDumpStringsAndFonts(outDir, stringList, fontList)
+                item.recurseDumpStringsAndFonts(outDir, stringDict, fontList)
             else:
                 if item.tag == "LSCR":
                     payload = item.payload
                     lscrStrings = self.lscrStringsPattern.findall(payload)
                     for (stringId, string) in lscrStrings:
-                        if string not in stringList:
-                            stringList[string] = [stringId]
+                        if string not in stringDict:
+                            stringDict[string] = [stringId]
                         else:
-                            stringList[string].append(stringId)
+                            stringDict[string].append(stringId)
                         for char in string:
                             asciiHistogram[char] += 1
                 elif item.tag == "CHAR":
@@ -190,7 +212,6 @@ if __name__ == "__main__":
     #root.printTree()
     #f = open("newfile", "wb")
     #root.writeTree(f)
-    #print json.dumps(stringList, indent=4)
     unusedChars = []
     for char in sorted(asciiHistogram.keys()):
         if asciiHistogram[char] == 0:
