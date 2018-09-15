@@ -105,7 +105,6 @@ class HETree:
     def dumpFont(self, font, fontDir):
         print fontDir
         """
-        print outDir
         i = 0
         (size, version) = struct.unpack("<IH", font.payload[i:i+6])
         i += 6
@@ -160,6 +159,61 @@ class HETree:
                 elif item.tag == "CHAR":
                     fontList.append(item)
 
+    def repackStringsAndFonts(self, inDir):
+        self.replaceStrings(inDir)
+
+    def replaceStrings(self, inDir):
+        # load the translated strings from disk
+        stringJsonFile = inDir + "/strings.json"
+        translatedList = json.loads(open(stringJsonFile, "rb").read())
+
+        # rearrange the strings so that each ID maps to a translated string
+        stringDict = {}
+        for item in translatedList:
+            idList = item['_idList']
+            for stringId in idList:
+                stringDict[stringId] = item['Spanish'].encode("ascii")
+
+        # dig through the tree and replace strings by their IDs via the
+        # LSCR chunks
+        self.recurseReplaceStrings(stringDict)
+
+    def recurseReplaceStrings(self, stringDict):
+        for item in self.array:
+            if item.__class__.__name__ == "HETree":
+                item.recurseReplaceStrings(stringDict)
+            else:
+                if item.tag == "LSCR":
+                    payload = item.payload
+                    lscrStrings = self.lscrStringsPattern.findall(payload)
+                    # find a list of string IDs that occur in this chunk
+                    idList = []
+                    for (stringId, originalString) in lscrStrings:
+                        idList.append(stringId)
+                    # generate a new payload if there are strings in this chunk
+                    if len(idList) > 0:
+                        newPayload = ""
+                        i = 0
+                        for stringId in idList:
+                            # copy all the data from the current position
+                            # until the start of the string ID
+                            stringIdOffset = payload.find(stringId)
+                            newPayload += payload[i:stringIdOffset]
+                            # copy string ID and new string
+                            newPayload += stringId
+                            newPayload += struct.pack("B", 0x7F)
+                            newPayload += stringDict[stringId]
+                            newPayload += struct.pack("B", 0x00)
+                            # in the old payload, advance to the end of the
+                            # string ID, just before the start of the string
+                            i = stringIdOffset + len(stringId) + 1
+                            # find the end of the string in the original payload
+                            i += payload[i:].find("\x00") + 1
+                        # copy the residual from the original payload
+                        newPayload += payload[i:]
+                        # replace original payload with new
+                        item.payload = newPayload
+
     def printTree(self, depth=0):
         for item in self.array:
             print depth * ' ' + item.tag
@@ -210,11 +264,6 @@ if __name__ == "__main__":
     root = HETree(None, isRoot=True)
     root.parseBlob(data)
     #root.printTree()
-    #f = open("newfile", "wb")
-    #root.writeTree(f)
-    unusedChars = []
-    for char in sorted(asciiHistogram.keys()):
-        if asciiHistogram[char] == 0:
-            unusedChars.append(char)
-    print "Unused characters:"
-    print unusedChars
+    f = open("newfile", "wb")
+    root.replaceStrings("pj-str-fonts")
+    root.writeTree(f)
