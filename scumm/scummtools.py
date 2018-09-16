@@ -124,7 +124,6 @@ class HETree:
             item = {
                 "English": string,
                 "Spanish": string,
-                "_idList": stringDict[string]
             }
             translatedList.append(item)
         jsonFile = open(stringJsonFile, "wb").write(json.dumps(translatedList, indent=4, sort_keys=True))
@@ -167,12 +166,11 @@ class HETree:
         stringJsonFile = inDir + "/strings.json"
         translatedList = json.loads(open(stringJsonFile, "rb").read())
 
-        # rearrange the strings so that each ID maps to a translated string
+        # rearrange the strings so that the original string maps to the
+        # translated string
         stringDict = {}
         for item in translatedList:
-            idList = item['_idList']
-            for stringId in idList:
-                stringDict[stringId] = item['Spanish'].encode("ascii")
+            stringDict[item['English'].encode("ascii")] = item['Spanish'].encode("ascii")
 
         # dig through the tree and replace strings by their IDs via the
         # LSCR chunks
@@ -185,34 +183,32 @@ class HETree:
             else:
                 if item.tag == "LSCR":
                     payload = item.payload
-                    lscrStrings = self.lscrStringsPattern.findall(payload)
                     # find a list of string IDs that occur in this chunk
-                    idList = []
-                    for (stringId, originalString) in lscrStrings:
-                        idList.append(stringId)
+                    idMatches = self.lscrStringsPattern.findall(payload)
                     # generate a new payload if there are strings in this chunk
-                    if len(idList) > 0:
+                    if len(idMatches) > 0:
                         newPayload = ""
                         i = 0
-                        for stringId in idList:
+                        for (stringId, originalString) in idMatches:
                             # copy all the data from the current position
                             # until the start of the string ID
-                            stringIdOffset = payload.find(stringId)
-                            newPayload += payload[i:stringIdOffset]
+                            stringIdOffset = payload[i:].find(stringId)
+                            newPayload += payload[i:i+stringIdOffset]
                             # copy string ID and new string
                             newPayload += stringId
                             newPayload += struct.pack("B", 0x7F)
-                            newPayload += stringDict[stringId]
+                            newPayload += stringDict[originalString]
                             newPayload += struct.pack("B", 0x00)
                             # in the old payload, advance to the end of the
                             # string ID, just before the start of the string
-                            i = stringIdOffset + len(stringId) + 1
+                            i += stringIdOffset + len(stringId) + 1
                             # find the end of the string in the original payload
-                            i += payload[i:].find("\x00") + 1
+                            i += len(originalString) + 1
                         # copy the residual from the original payload
                         newPayload += payload[i:]
                         # replace original payload with new
                         item.payload = newPayload
+                        item.payloadSize = len(item.payload)
 
     def printTree(self, depth=0):
         for item in self.array:
