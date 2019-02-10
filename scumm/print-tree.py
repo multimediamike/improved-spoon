@@ -6,7 +6,6 @@
 # Call the scummtools module to parse a SCUMM resource file and print
 # its hierarchical tree to standard output.
 
-import os
 import sys
 
 import scummtools
