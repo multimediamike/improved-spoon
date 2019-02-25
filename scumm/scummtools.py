@@ -18,22 +18,24 @@ for i in range(32, 127):
 asciiHistogram['\t'] = 0
 
 class HEChunk:
-    def __init__(self, tag, payload):
+    def __init__(self, tag, payload, offset):
         self.tag = tag
         self.payload = payload
         self.payloadSize = len(payload)
+        self.offset = offset
 
 class HETree:
     tagChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz1234567890"
     preambleSize = 8
     lscrStringsPattern = re.compile('\x7FT(\d{6,8},\d{4,5})\x7F([^\x00]+)\x00')
 
-    def __init__(self, tag, isRoot=False):
+    def __init__(self, tag, isRoot=False, offset=0):
         self.tag = tag
         self.array = []
         self.isRoot = isRoot
+        self.offset = offset
 
-    def parseBlob(self, blob):
+    def parseBlob(self, blob, offset=0):
         # perform a basic sanity check at the root level: make sure that
         # the initial tag is ASCII and the size is less than file size
         if not all(char in self.tagChars for char in blob[0:4]):
@@ -45,10 +47,10 @@ class HETree:
             return False
 
         # proceed with parsing
-        self.recurseParseBlob(blob)
+        self.recurseParseBlob(blob, offset)
         return True
 
-    def recurseParseBlob(self, blob):
+    def recurseParseBlob(self, blob, offset):
         i = 0
         blob_size = len(blob)
         while i < blob_size:
@@ -67,11 +69,11 @@ class HETree:
                     nextTag = blob[i:i+4]
                 nextSize = struct.unpack(">I", blob[i+4:i+8])[0]
             if nextTag and nextTag not in ["DIGI", "SDAT"] and (nextSize - self.preambleSize) < payloadSize:
-                subtree = HETree(tag)
-                subtree.parseBlob(blob[i:i+payloadSize])
+                subtree = HETree(tag, offset=offset+i-8)
+                subtree.parseBlob(blob[i:i+payloadSize], offset + i)
                 self.array.append(subtree)
             else:
-                self.array.append(HEChunk(tag, blob[i:i+payloadSize]))
+                self.array.append(HEChunk(tag, blob[i:i+payloadSize], offset + i - 8))
             i += payloadSize
 
     # given an open file handle (f), serialize the tree to the file
@@ -212,7 +214,7 @@ class HETree:
 
     def printTree(self, depth=0):
         for item in self.array:
-            print depth * ' ' + item.tag
+            print depth * ' ' + item.tag + " (" + hex(item.offset) + ")"
             if item.__class__.__name__ == "HETree":
                 item.printTree(depth+2)
 
