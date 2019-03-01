@@ -67,3 +67,16 @@ Workflow:
 2. Translate the strings inside of strings.json. Each string is shown twice, once with the key 'original' for reference and once with the key 'translated', which will be used for the next step.
 3. 'json2ved.py strings.json input.ved output.ved': This command will read the original input.ved resource, replace the original strings with translated strings based on strings.json, and then generate a new ved resource file named output.ved
 
+## SCUMM Tools
+The directory `scummtools` contains scripts for manipulating the hierarchical data files found on SCUMM games. This is a list of the games that have been tested with these tools:
+
+1. Pajama Sam: No Need to Hide When It's Dark Outside: The tool operates on the pajama.he0 and pajama.he1 files.
+
+Workflow (for Pajama Sam):
+
+1. Decrypt the relevant files. Example: 'crypt.py encrypted-file decrypted-file 69'.
+2. Dump the strings and fonts into a new directory named pj1-strings-fonts: 'dump-strings-and-fonts.py decrypted-original.he1 pj1-strings-fonts'.
+3. Edit pj1-strings-fonts/strings.json and translate the Spanish strings (do not touch the English strings since they need to remain the same for the repackaging step).
+4. Repack the strings into a new resource file: 'repack-strings-and-fonts.py decrypted-original.he1 decrypted-new.he1 pj1-strings-fonts'.
+5. Rebuild the HE0 index file: 'rebuild-he0-index.py original-decrypted.he0 new-decrypted.he0 new-decrypted.he1'.
+6. Re-encrypt the new files. Example: 'crypt.py decrypted-file encrypted-file 69'.
