@@ -22,6 +22,7 @@ class HEChunk:
         self.tag = tag
         self.payload = payload
         self.payloadSize = len(payload)
+        self.chunkSize = self.payloadSize + 8
         self.offset = offset
 
 class HETree:
@@ -29,11 +30,12 @@ class HETree:
     preambleSize = 8
     lscrStringsPattern = re.compile('\x7FT(\d{6,8},\d{4,5})\x7F([^\x00]+)\x00')
 
-    def __init__(self, tag, isRoot=False, offset=0):
+    def __init__(self, tag, isRoot=False, offset=0, chunkSize=0):
         self.tag = tag
         self.array = []
         self.isRoot = isRoot
         self.offset = offset
+        self.chunkSize = chunkSize
 
     def parseBlob(self, blob, offset=0):
         # perform a basic sanity check at the root level: make sure that
@@ -69,7 +71,7 @@ class HETree:
                     nextTag = blob[i:i+4]
                 nextSize = struct.unpack(">I", blob[i+4:i+8])[0]
             if nextTag and nextTag not in ["DIGI", "SDAT"] and (nextSize - self.preambleSize) < payloadSize:
-                subtree = HETree(tag, offset=offset+i-8)
+                subtree = HETree(tag, offset=offset+i-8, chunkSize=payloadSize+8)
                 subtree.parseBlob(blob[i:i+payloadSize], offset + i)
                 self.array.append(subtree)
             else:
