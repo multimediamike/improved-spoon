@@ -24,7 +24,6 @@ import scummtools
 #  - zeroes (LE_32)
 #  - list of relative offsets (LE_32)
 def generateIndex(chunkList, diriIndex=False):
-    print len(chunkList), hex(len(chunkList))
     roomList = struct.pack("B", 0)
     offsetList = struct.pack("<I", 0)
     sizeList = struct.pack("<I", 0)
@@ -112,7 +111,6 @@ if __name__ == "__main__":
 
     # iterate over the index chunks and generate new payloads for relative offsets
     for chunk in indexTree.array:
-        print chunk.tag
         if chunk.tag == "DIRI":
             chunk.payload = generateIndex(rmdaList, diriIndex=True)
         elif chunk.tag == "DIRR":
@@ -133,6 +131,12 @@ if __name__ == "__main__":
             # pack the offset list
             for offset in rmimList:
                 chunk.payload += struct.pack("<I", offset)
+        elif chunk.tag == "MAXS":
+            # update the number of sound records
+            newPayload = chunk.payload[0:22]
+            newPayload += struct.pack("<H", len(sounList)+1)
+            newPayload += chunk.payload[0x18:]
+            chunk.payload = newPayload
 
     # write the new index file
     print "Writing new index file (%s)..." % (newIndexFile)
