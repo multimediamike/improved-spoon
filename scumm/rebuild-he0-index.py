@@ -48,7 +48,7 @@ def generateIndex(chunkList, diriIndex=False):
 
 if __name__ == "__main__":
     if len(sys.argv) < 4:
-        print "USAGE: rebuild-he0-file.py original-decrypted-he0 new-decrypted-he0 decrypted-he1"
+        print "USAGE: rebuild-he0-file.py original-decrypted-he0 new-decrypted-he0 new-decrypted-he1"
         sys.exit(1)
 
     origIndexFile = sys.argv[1]
