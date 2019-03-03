@@ -34,7 +34,9 @@ if __name__ == "__main__":
         sys.exit(1)
 
     # replace the string and font resources
-    resourceTree.repackStringsAndFonts(inDir)
+    if not resourceTree.repackStringsAndFonts(inDir):
+        print "Failed to repack strings and fonts"
+        sys.exit(1)
 
     # write the new resource file
     outFile = open(newResourceFile, "wb")

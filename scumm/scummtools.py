@@ -163,7 +163,7 @@ class HETree:
                     fontList.append(item)
 
     def repackStringsAndFonts(self, inDir):
-        self.replaceStrings(inDir)
+        return self.replaceStrings(inDir)
 
     def replaceStrings(self, inDir):
         # load the translated strings from disk
@@ -174,11 +174,22 @@ class HETree:
         # translated string
         stringDict = {}
         for item in translatedList:
-            stringDict[item['English'].encode("ascii")] = item['Spanish'].encode("ascii")
+            englishStr = item['English'].encode("ascii")
+            spanishStr = item['Spanish'].encode("ascii")
+            # translated strings must not be longer than the original strings
+            if len(spanishStr) > len(englishStr):
+                print "Sorry; the translated Spanish strings need to be equal to, or shorter, in length than the original English strings"
+                print "English (%d characters): '%s'" % (len(englishStr), englishStr)
+                print "Spanish (%d characters): '%s'" % (len(spanishStr), spanishStr)
+                return False
+            # if the string is shorter than the original, pad with spaces
+            if len(spanishStr) < len(englishStr):
+                spanishStr += " " * (len(englishStr) - len(spanishStr))
+            stringDict[englishStr] = spanishStr
 
         # dig through the tree and replace strings by their IDs via the
         # LSCR chunks
-        self.recurseReplaceStrings(stringDict)
+        return self.recurseReplaceStrings(stringDict)
 
     def recurseReplaceStrings(self, stringDict):
         for item in self.array:
@@ -213,6 +224,9 @@ class HETree:
                         # replace original payload with new
                         item.payload = newPayload
                         item.payloadSize = len(item.payload)
+
+        # if things get this far, all the strings were fine
+        return True
 
     def printTree(self, depth=0):
         for item in self.array:
