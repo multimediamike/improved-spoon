@@ -178,10 +178,9 @@ class HETree:
             spanishStr = item['Spanish'].encode("ascii")
             # translated strings must not be longer than the original strings
             if len(spanishStr) > len(englishStr):
-                print "Sorry; the translated Spanish strings need to be equal to, or shorter, in length than the original English strings"
-                print "English (%d characters): '%s'" % (len(englishStr), englishStr)
-                print "Spanish (%d characters): '%s'" % (len(spanishStr), spanishStr)
-                return False
+                print "WARNING: the translated Spanish strings should be equal to, or shorter, in length than the original English strings"
+                print "  English (%d characters): '%s'" % (len(englishStr), englishStr)
+                print "  Spanish (%d characters): '%s'" % (len(spanishStr), spanishStr)
             # if the string is shorter than the original, pad with spaces
             if len(spanishStr) < len(englishStr):
                 spanishStr += " " * (len(englishStr) - len(spanishStr))
