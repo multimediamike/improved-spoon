@@ -80,3 +80,8 @@ Workflow (for Pajama Sam):
 4. Repack the strings into a new resource file: 'repack-strings-and-fonts.py decrypted-original.he1 decrypted-new.he1 pj1-strings-fonts'.
 5. Rebuild the HE0 index file: 'rebuild-he0-index.py original-decrypted.he0 new-decrypted.he0 new-decrypted.he1'.
 6. Re-encrypt the new files. Example: 'crypt.py decrypted-file encrypted-file 69'.
+
+## Sierra Tools
+The directory `sierry` contains utilities for manipulating data files in Sierra games.
+
+The program 'dump-rbt-frames' will take a .rbt animation file and create a series of individual PNM files.
