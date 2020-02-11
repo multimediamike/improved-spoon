@@ -82,6 +82,6 @@ Workflow (for Pajama Sam):
 6. Re-encrypt the new files. Example: 'crypt.py decrypted-file encrypted-file 69'.
 
 ## Sierra Tools
-The directory `sierry` contains utilities for manipulating data files in Sierra games.
+The directory `sierra` contains utilities for manipulating data files in Sierra games.
 
 The program 'dump-rbt-frames' will take a .rbt animation file and create a series of individual PNM files.
