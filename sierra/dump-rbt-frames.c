@@ -90,7 +90,6 @@ static void delete_get_bits(get_bits_context *gb)
 #define PALETTE_COUNT 256
 #define RBT_HEADER_SIZE 60
 #define UNKNOWN_TABLE_SIZE (1024+512)
-#define SUBTITLE_THRESHOLD 0x70
 #define MILLISECONDS_PER_FRAME 100
 
 /* VLC table */
