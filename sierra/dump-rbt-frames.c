@@ -138,6 +138,7 @@ typedef struct
     int height;
     int frame_count;
     int audio_chunk_size;
+    int framerate;
     uint8_t palette[PALETTE_COUNT * 3];
     uint8_t *video_frame_size_table;
     uint8_t *frame_size_table;
@@ -192,6 +193,7 @@ static int load_rbt_header(rbt_dec_context *rbt, FILE *inrbt_file)
     rbt->version = LE_16(&header[6]);
     rbt->audio_chunk_size = LE_16(&header[8]);
     rbt->frame_count = LE_16(&header[14]);
+    rbt->framerate = LE_16(&header[28]);
 
     /* skip the unknown data, if it's there */
     unknown_chunk_size = LE_16(&header[18]);
@@ -420,6 +422,7 @@ static int copy_frames(rbt_dec_context *rbt, FILE *inrbt_file,
     }
 
     printf("maximum dimensions seen are %dx%d\n", max_width, max_height);
+    printf("framerate = %d fps\n", rbt->framerate);
 
     free(full_window);
 
